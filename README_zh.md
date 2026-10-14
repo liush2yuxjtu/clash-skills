@@ -34,6 +34,19 @@ SECRET='你的控制器密钥' ./clash-probe.sh           # 测全部节点
 
 ## 安装为 Claude Code skill
 
+### 方式 A：插件市场（推荐）
+
+在 Claude Code 中执行：
+
+```
+/plugin marketplace add liush2yuxjtu/clash-skills
+/plugin install clash-skills@clash-skills
+```
+
+装好后以 `/clash-skills:clash-node-probe` 调用。之后用 `/plugin marketplace update clash-skills` 更新。
+
+### 方式 B：手动复制 skill
+
 Claude Code 从 `~/.claude/skills/<skill-name>/SKILL.md` 加载个人 skill，从 `.claude/skills/<skill-name>/SKILL.md` 加载项目 skill（[官方文档](https://code.claude.com/docs/en/skills)）。
 
 ```bash
@@ -139,6 +152,12 @@ TSV 列：`node  exit_ip  country  trust  claude_ip  claude_trust  claude_loc`�
 - 每个 skill 保持**只用 bash + curl**，并在 Windows Git Bash 下测试（非 ASCII 内容走 stdin，不要放在 argv 里）。
 - 每个 skill 放在 `skills/<name>/`，`SKILL.md` 的 frontmatter 要有 `name` 和 `description`。
 - 不要提交真实 IP、控制器密钥或订阅链接。
+- 本仓库没有 CI。push 前请在本地运行验证 skill 并确保全部通过（兼容 macOS 自带 bash 3.2）：
+  ```bash
+  bash skills/verify-skill/verify.sh
+  BASHES="bash /bin/bash" bash skills/verify-skill/verify.sh   # 同时用 macOS /bin/bash 3.2 测试
+  ```
+  它会做语法检查、shellcheck（已安装时）、用模拟 Clash API 运行探测脚本，并校验 `.claude-plugin/*.json` 和 SKILL.md frontmatter。在 Claude Code 里也可以直接让它运行 `verify-skill`。
 
 ## 许可证
 

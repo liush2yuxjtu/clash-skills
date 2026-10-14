@@ -34,6 +34,19 @@ SECRET='your-controller-secret' ./clash-probe.sh           # all nodes
 
 ## Install as a Claude Code skill
 
+### Option A: plugin marketplace (recommended)
+
+Inside Claude Code:
+
+```
+/plugin marketplace add liush2yuxjtu/clash-skills
+/plugin install clash-skills@clash-skills
+```
+
+The skill is then available as `/clash-skills:clash-node-probe`. Update later with `/plugin marketplace update clash-skills`.
+
+### Option B: copy the skill manually
+
 Claude Code loads personal skills from `~/.claude/skills/<skill-name>/SKILL.md` and project skills from `.claude/skills/<skill-name>/SKILL.md` ([official docs](https://code.claude.com/docs/en/skills)).
 
 ```bash
@@ -139,6 +152,12 @@ PRs are welcome. Please:
 - Keep each skill **bash + curl only** and test it in Git Bash on Windows (send non-ASCII through stdin, not argv).
 - Put every skill in `skills/<name>/` with a `SKILL.md` that has `name` and `description` frontmatter.
 - Never commit real IPs, controller secrets or subscription URLs.
+- There is no CI. Before pushing, run the local verification skill and make sure it passes (it also works under macOS bash 3.2):
+  ```bash
+  bash skills/verify-skill/verify.sh
+  BASHES="bash /bin/bash" bash skills/verify-skill/verify.sh   # also test macOS /bin/bash 3.2
+  ```
+  It checks syntax, shellcheck (if installed), runs the probe against a mock Clash API, and validates `.claude-plugin/*.json` and SKILL.md frontmatter. In Claude Code you can just ask it to run `verify-skill`.
 
 ## License
 

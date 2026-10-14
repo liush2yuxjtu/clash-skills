@@ -10,20 +10,35 @@ put_name(){ printf '{"name":"%s"}' "$2" | api -X PUT "http://$API/proxies/$1" --
 enc(){ curl -Gso /dev/null -w '%{url_effective}' --data-urlencode "=$1" "http://x/" | sed 's@^http://x/?@@'; }
 jstr(){ grep -o "\"$1\":\"[^\"]*\"" | head -1 | sed "s/\"$1\":\"//;s/\"\$//"; }
 jnum(){ grep -o "\"$1\":[0-9.]*" | head -1 | sed "s/\"$1\"://"; }
-g=$(api "http://$API/proxies/GLOBAL")
+die(){ echo "clash-probe: $*" >&2; exit 1; }
+# --- pre-flight: nothing is PUT/PATCHed until all of these pass ---
+command -v curl >/dev/null 2>&1 || die "curl not found in PATH"
+case "$LIMIT" in ''|*[!0-9]*) die "LIMIT must be a non-negative integer (got '$LIMIT')";; esac
+# api_get URL -> body on stdout; fails unless HTTP 200
+api_get(){ r=$(api -w '\n%{http_code}' "$1") || return 1; code=${r##*$'\n'}; [ "$code" = 200 ] || return 1; printf '%s' "${r%$'\n'*}"; }
+g=$(api_get "http://$API/proxies/GLOBAL") || die "cannot fetch http://$API/proxies/GLOBAL (API unreachable or SECRET invalid)"
 orig_now=$(echo "$g" | jstr now)
-orig_mode=$(api "http://$API/configs" | jstr mode)
-restore(){ put_name GLOBAL "$orig_now"
-  api -X PATCH "http://$API/configs" -d "{\"mode\":\"$orig_mode\"}" >/dev/null; echo "restored mode=$orig_mode GLOBAL=$orig_now" >&2; }
+cfg=$(api_get "http://$API/configs") || die "cannot fetch http://$API/configs (API unreachable or SECRET invalid)"
+orig_mode=$(echo "$cfg" | jstr mode)
+[ -n "$orig_now" ] || die "GLOBAL has no current selection; refusing to continue"
+[ -n "$orig_mode" ] || die "could not read current mode from /configs; refusing to continue"
+restore(){ [ -n "$orig_now" ] && put_name GLOBAL "$orig_now"
+  [ -n "$orig_mode" ] && api -X PATCH "http://$API/configs" -d "{\"mode\":\"$orig_mode\"}" >/dev/null; echo "restored mode=$orig_mode GLOBAL=$orig_now" >&2; }
 trap restore EXIT
-mapfile -t nodes < <(echo "$g" | grep -o '"all":\[[^]]*\]' | sed 's/^"all":\[//;s/\]$//' | grep -o '"[^"]*"' | tr -d '"' \
+nodes=()
+while IFS= read -r line; do [ -n "$line" ] && nodes[${#nodes[@]}]="$line"; done <<EOF_NODES
+$(echo "$g" | grep -o '"all":\[[^]]*\]' | sed 's/^"all":\[//;s/\]$//' | grep -o '"[^"]*"' | tr -d '"' \
   | grep -vE '^(DIRECT|REJECT|REJECT-DROP|PASS|COMPATIBLE)$' | grep -vE '剩余|到期|官网|流量|套餐')
+EOF_NODES
 api -X PATCH "http://$API/configs" -d '{"mode":"global"}' >/dev/null
 printf 'node\texit_ip\tcountry\ttrust\tclaude_ip\tclaude_trust\tclaude_loc\n' > "$OUT"
-declare -A cache; n=0
-score(){ [ -z "$1" ] && return; [ -n "${cache[$1]}" ] && { echo "${cache[$1]}"; return; }
-  s=$(curl -s -m 20 "https://ipbook.net/api/risk-lookup?ip=$1" | jnum trustScore); cache[$1]="$s"; echo "$s"; }
-for node in "${nodes[@]}"; do
+# bash 3.2 has no associative arrays: cache is a newline list of "ip<TAB>score".
+cache=""; n=0
+score(){ [ -z "$1" ] && return; c=$(printf '%s\n' "$cache" | grep -F "$1	" | head -1)
+  [ -n "$c" ] && { echo "${c#*	}"; return; }
+  s=$(curl -s -m 20 "https://ipbook.net/api/risk-lookup?ip=$1" | jnum trustScore); cache="$cache
+$1	$s"; echo "$s"; }
+for node in ${nodes[@]+"${nodes[@]}"}; do
   n=$((n+1)); [ "$LIMIT" -gt 0 ] && [ "$n" -gt "$LIMIT" ] && break
   put_name GLOBAL "$node"; sleep 1
   w=$(curl -4 -s -m 15 -x "http://127.0.0.1:$PORT" https://ipbook.net/api/whoami)
