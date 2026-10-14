@@ -15,8 +15,11 @@ Measures, for each node: general exit IP, country, trust score, and the exit IP 
 ```bash
 SECRET='your-secret' API=127.0.0.1:9097 PORT=7897 ./clash-probe.sh        # all nodes
 SECRET='your-secret' LIMIT=3 ./clash-probe.sh                              # quick test
+SKIP_UNREACHABLE=1 PROBE_TIMEOUT=12 SWITCH_WAIT=0.3 ./clash-probe.sh        # skip dead nodes
 ```
 Output: a TSV `clash_probe_<time>.tsv` with columns `node exit_ip country trust claude_ip claude_trust claude_loc`.
+
+Optional env: `PROBE_TIMEOUT` (curl `-m`, default 15), `SWITCH_WAIT` (seconds after selecting a node, default 1), `SKIP_UNREACHABLE=1` (Clash delay-test first; unreachable rows become `-`).
 
 ## How it works
 1. Saves current mode and the `GLOBAL` selection, then sets mode to `global` (restored on exit via `trap`, even on Ctrl-C).

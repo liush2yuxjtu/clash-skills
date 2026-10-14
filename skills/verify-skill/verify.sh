@@ -16,7 +16,7 @@ trap cleanup EXIT
 
 echo "== syntax (bash -n)"
 for b in $BASHES; do
-  for f in "$PROBE" "$HERE/verify.sh"; do
+  for f in "$PROBE" "$HERE/verify.sh" "$HERE/live-verify.sh"; do
     if "$b" -n "$f"; then ok "$b -n $(basename "$f")"; else ko "$b -n $(basename "$f")"; fi
   done
 done
@@ -25,7 +25,7 @@ if grep -nE '(^|[^[:alnum:]_])(mapfile|readarray|declare -A|local -A|typeset -A)
 
 echo "== shellcheck"
 if command -v shellcheck >/dev/null 2>&1; then
-  if shellcheck -S error "$PROBE" "$HERE/verify.sh"; then ok "shellcheck -S error"; else ko "shellcheck -S error"; fi
+  if shellcheck -S error "$PROBE" "$HERE/verify.sh" "$HERE/live-verify.sh"; then ok "shellcheck -S error"; else ko "shellcheck -S error"; fi
 else sk "shellcheck not installed"; fi
 
 echo "== JSON (.claude-plugin)"

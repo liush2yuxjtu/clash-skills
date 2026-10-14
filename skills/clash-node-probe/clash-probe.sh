@@ -3,6 +3,7 @@
 # Pure bash + curl. Usage: API=127.0.0.1:9097 SECRET=xxx PORT=7897 LIMIT=0 ./clash-probe.sh
 API="${API:-127.0.0.1:9097}"; SECRET="${SECRET:?set SECRET to your Clash external-controller secret}"; PORT="${PORT:-7897}"
 LIMIT="${LIMIT:-0}"; OUT="${OUT:-clash_probe_$(date +%Y%m%d_%H%M).tsv}"
+PROBE_TIMEOUT="${PROBE_TIMEOUT:-15}"; SWITCH_WAIT="${SWITCH_WAIT:-1}"; SKIP_UNREACHABLE="${SKIP_UNREACHABLE:-0}"
 H="Authorization: Bearer $SECRET"
 api(){ curl -s -m 10 -H "$H" -H 'Content-Type: application/json' "$@"; }
 # Non-ASCII in argv gets mangled by Windows curl.exe, so send JSON bodies via stdin.
@@ -36,17 +37,24 @@ printf 'node\texit_ip\tcountry\ttrust\tclaude_ip\tclaude_trust\tclaude_loc\n' > 
 cache=""; n=0
 score(){ [ -z "$1" ] && return; c=$(printf '%s\n' "$cache" | grep -F "$1	" | head -1)
   [ -n "$c" ] && { echo "${c#*	}"; return; }
-  s=$(curl -s -m 20 "https://ipbook.net/api/risk-lookup?ip=$1" | jnum trustScore); cache="$cache
+  s=$(curl -s -m "$PROBE_TIMEOUT" "https://ipbook.net/api/risk-lookup?ip=$1" | jnum trustScore); cache="$cache
 $1	$s"; echo "$s"; }
 for node in ${nodes[@]+"${nodes[@]}"}; do
   n=$((n+1)); [ "$LIMIT" -gt 0 ] && [ "$n" -gt "$LIMIT" ] && break
-  put_name GLOBAL "$node"; sleep 1
-  w=$(curl -4 -s -m 15 -x "http://127.0.0.1:$PORT" https://ipbook.net/api/whoami)
+  put_name GLOBAL "$node"; sleep "$SWITCH_WAIT"
+  if [ "$SKIP_UNREACHABLE" = 1 ]; then
+    dj=$(api "http://$API/proxies/$(enc "$node")/delay?url=http://www.gstatic.com/generate_204&timeout=3000")
+    if ! echo "$dj" | grep -q '"delay":'; then
+      printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$node" - - - - - - | tee -a "$OUT"
+      continue
+    fi
+  fi
+  w=$(curl -4 -s -m "$PROBE_TIMEOUT" -x "http://127.0.0.1:$PORT" https://ipbook.net/api/whoami)
   ip=$(echo "$w" | jstr ip)
-  t=$(curl -s -m 15 -x "http://127.0.0.1:$PORT" https://claude.ai/cdn-cgi/trace)
+  t=$(curl -s -m "$PROBE_TIMEOUT" -x "http://127.0.0.1:$PORT" https://claude.ai/cdn-cgi/trace)
   cip=$(echo "$t" | sed -n 's/^ip=//p'); cloc=$(echo "$t" | sed -n 's/^loc=//p')
   s1=$(score "$ip"); s2=$(score "$cip")
-  cc=$(curl -s -m 15 "https://ipbook.net/api/risk-lookup?ip=$ip" | jstr country)
+  cc=$(curl -s -m "$PROBE_TIMEOUT" "https://ipbook.net/api/risk-lookup?ip=$ip" | jstr country)
   printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$node" "${ip:--}" "${cc:--}" "${s1:--}" "${cip:--}" "${s2:--}" "${cloc:--}" | tee -a "$OUT"
 done
 echo "saved: $OUT" >&2

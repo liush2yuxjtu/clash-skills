@@ -158,6 +158,12 @@ TSV 列：`node  exit_ip  country  trust  claude_ip  claude_trust  claude_loc`�
   BASHES="bash /bin/bash" bash skills/verify-skill/verify.sh   # 同时用 macOS /bin/bash 3.2 测试
   ```
   它会做语法检查、shellcheck（已安装时）、用模拟 Clash API 运行探测脚本，并校验 `.claude-plugin/*.json` 和 SKILL.md frontmatter。在 Claude Code 里也可以直接让它运行 `verify-skill`。
+  可选的 **live** 验证（会下载 mihomo，不要提交密钥）：
+  ```bash
+  CLASH_SUB_URL='…' bash skills/verify-skill/live-verify.sh
+  # 或：CLASH_CONFIG=/path/to/local-profile.yaml bash skills/verify-skill/live-verify.sh
+  ```
+  详见 `skills/verify-skill/SKILL.md`。订阅链接、控制器密钥和配置文件请放在 `.gitignore` 里。
 
 ## 许可证
 
