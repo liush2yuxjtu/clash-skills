@@ -1,0 +1,13 @@
+{
+  "name": "clash-skills",
+  "description": "Claude Code skills for Clash / mihomo",
+  "owner": { "name": "liush2yuxjtu" },
+  "plugins": [
+    {
+      "name": "clash-skills",
+      "source": "./",
+      "description": "Probe every Clash/mihomo node for exit IP, Claude exit IP and ipbook trust score (bash + curl)",
+      "version": "0.1.0"
+    }
+  ]
+}

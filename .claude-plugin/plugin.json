@@ -1,0 +1,8 @@
+{
+  "name": "clash-skills",
+  "description": "Claude Code skills for Clash / mihomo: probe every node's exit IP, Claude exit IP and trust score",
+  "version": "0.1.0",
+  "author": { "name": "liush2yuxjtu" },
+  "repository": "https://github.com/liush2yuxjtu/clash-skills",
+  "license": "MIT"
+}
