@@ -158,6 +158,12 @@ PRs are welcome. Please:
   BASHES="bash /bin/bash" bash skills/verify-skill/verify.sh   # also test macOS /bin/bash 3.2
   ```
   It checks syntax, shellcheck (if installed), runs the probe against a mock Clash API, and validates `.claude-plugin/*.json` and SKILL.md frontmatter. In Claude Code you can just ask it to run `verify-skill`.
+  Optional **live** check (downloads mihomo, never commits secrets):
+  ```bash
+  CLASH_SUB_URL='…' bash skills/verify-skill/live-verify.sh
+  # or: CLASH_CONFIG=/path/to/local-profile.yaml bash skills/verify-skill/live-verify.sh
+  ```
+  See `skills/verify-skill/SKILL.md`. Keep subscription URLs, controller secrets and profile dumps gitignored.
 
 ## License
 

@@ -1,0 +1,19 @@
+# Local secrets — never commit subscription URLs, controller secrets, or live configs
+.env
+.env.*
+*.secret
+profile.yaml
+sub-url.txt
+config.yaml
+secrets/
+.local-secrets/
+
+# Live-verify / probe artifacts (contain exit IPs)
+clash_probe_*.tsv
+live-verify-*.tsv
+*.tsv
+
+# Downloaded mihomo binary and scratch dirs
+mihomo
+mihomo-*
+.cache/clash-skills-live-verify/
